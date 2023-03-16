@@ -45,7 +45,6 @@ const pack = async item => {
     groupId: item.GroupId,
     trxId: TrxId,
     id,
-    latestTrxId: '',
     storage: 'chain',
     commentCount: 0,
     likeCount: 0,

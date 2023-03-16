@@ -26,7 +26,7 @@ router.get('/', async ctx => {
       stop = true;
     }
   }
-  const postUrls = posts.map(post => `${origin}/posts/${post.trxId}`);
+  const postUrls = posts.map(post => `${origin}/posts/${post.id}`);
   const userUrls = _.uniq(posts.map(post => post.userAddress)).map(address => `${origin}/users/${address}`);
   const urls = [...postUrls, ...userUrls];
   console.log(`Got ${urls.length} urls (${postUrls.length} posts + ${userUrls.length} users)`);

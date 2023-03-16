@@ -104,7 +104,6 @@ export default observer(() => {
       groupId: groupStore.postGroup.groupId,
       trxId: res.trx_id,
       id: activity.object?.id ?? '',
-      latestTrxId: '',
       storage: TrxStorage.cache,
       commentCount: 0,
       likeCount: 0,
