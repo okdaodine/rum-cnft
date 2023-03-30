@@ -63,10 +63,9 @@ export default observer((props: IProps) => {
           id,
         }
       };
-      const res = liked ?
+      liked ?
         await TrxApi.createActivity({ type: 'Undo', object: like }, groupStore.defaultGroup.groupId) :
         await TrxApi.createActivity(like, groupStore.defaultGroup.groupId);
-      console.log(res);
       postStore.updatePost({
         ...post,
         likeCount: post.likeCount + (post.extra.liked ? -1 : 1),
@@ -93,14 +92,13 @@ export default observer((props: IProps) => {
     }
     state.submitting = true;
     try {
-      const res = await TrxApi.createActivity({
+      await TrxApi.createActivity({
         type: 'Delete',
         object: {
           type: 'Note',
           id: postId,
         },
       }, groupStore.postGroup.groupId);
-      console.log(res);
     } catch (err) {
       console.log(err);
     }

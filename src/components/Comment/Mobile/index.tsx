@@ -139,7 +139,6 @@ export default observer((props: IProps) => {
       return;
     }
     const res = await TrxApi.createActivity(activity, groupStore.defaultGroup.groupId);
-    console.log(res);
     const comment: IComment = {
       content: activity.object?.content || '',
       images: (activity.object?.image as [])?.map(image => base64.getUrl(image as any)) ?? [],

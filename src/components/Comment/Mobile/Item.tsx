@@ -141,10 +141,9 @@ export default observer((props: IProps) => {
           id,
         },
       }
-      const res = comment.extra.liked ?
+      comment.extra.liked ?
         await TrxApi.createActivity({ type: 'Undo', object: like }, groupStore.defaultGroup.groupId) :
         await TrxApi.createActivity(like, groupStore.defaultGroup.groupId);
-      console.log(res);
       commentStore.updateComment({
         ...comment,
         likeCount: comment.likeCount + (comment.extra.liked ? -1 : 1),
