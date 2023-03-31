@@ -65,7 +65,7 @@ exports.list = async (query, options = {}) => {
 const bulkAppendExtra = async (items, options = {}) => {
   items = items.map((item) => {
     item.extra = item.extra || {};
-    item.extra.groupName = rumSDK.cache.Group.get(item.groupId).groupName
+    item.extra.groupName = '';
     return item;
   });
 
