@@ -12,13 +12,13 @@ router.get('/', async ctx => {
   while (!stop) {
     const _posts = await Post.findAll({
       raw: true,
-      attributes: ['trxId', 'userAddress'],
+      attributes: ['id', 'userAddress'],
       limit: 500,
       offset: Math.max(0, posts.length)
     });
     if (_posts.length > 0) {
       posts.push(..._posts.map(post => ({
-        trxId: post.trxId,
+        id: post.id,
         userAddress: post.userAddress
       })));
       console.log(`collected ${posts.length} posts`);
