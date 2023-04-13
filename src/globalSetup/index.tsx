@@ -169,9 +169,11 @@ export default observer(() => {
                     (v1Content.data.type === 'Create' && v1Content.data.object!.type === 'Note' && !v1Content.data.object!.inreplyto) ||
                     (v1Content.data.type === 'Delete' && v1Content.data.object!.type === 'Note')
                   )
-                  await TrxApi.createActivity(v1Content.data, (isPost ? groupStore.postGroup : groupStore.defaultGroup).groupId, '', {
+                  await TrxApi.createActivity({
+                    ...v1Content.data,
+                    published: new Date(Number(v1Content.raw.TimeStamp.slice(0, 13))).toISOString()
+                  }, (isPost ? groupStore.postGroup : groupStore.defaultGroup).groupId, '', {
                     trxId: v1Content.trxId,
-                    timestamp: Number(v1Content.raw.TimeStamp.slice(0, -6)),
                   });
                   await V1ContentApi.done(v1Content.trxId);
                 }
