@@ -244,6 +244,9 @@ export default observer((props: RouteChildrenProps) => {
 
   const exportData = async () => {
     try {
+      if (state.exporting) {
+        return;
+      }
       if (isMobile) {
         confirmDialogStore.show({
           content: lang.pleaseExportDataOnDesktop,
@@ -254,7 +257,19 @@ export default observer((props: RouteChildrenProps) => {
         return; 
       }
       state.exporting = true;
-      const exportedContents = await ContentApi.export(userStore.pubKey);
+      const exportedContents = [];
+      const limit = 50;
+      while (true) {
+        const contents: any = await ContentApi.export(userStore.pubKey, {
+          offset: exportedContents.length,
+          limit,
+        });
+        exportedContents.push(...contents);
+        await sleep(500);
+        if (contents.length < limit) {
+          break;
+        }
+      }
       await sleep(400);
       confirmDialogStore.show({
         content: `<a id="download-export-data" href='data:plain/text,${JSON.stringify(exportedContents)}' download='${userStore.profile.name}_${userStore.pubKey}.json'>${lang.youAreSureTo(lang.exportData)}</a>`,
@@ -271,6 +286,7 @@ export default observer((props: RouteChildrenProps) => {
       });
     }
     state.exporting = false;
+    state.anchorEl = null;
   }
 
 
@@ -424,7 +440,6 @@ export default observer((props: RouteChildrenProps) => {
                       )}
                       {isMyself && (
                         <MenuItem onClick={() => {
-                          state.anchorEl = null;
                           exportData();
                         }}>  
                           <div className="py-1 pl-1 pr-3 flex items-center dark:text-white dark:text-opacity-80 text-neutral-700">
