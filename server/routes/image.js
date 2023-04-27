@@ -4,6 +4,7 @@ const Post = require('../database/post');
 const Comment = require('../database/comment');
 const { assert, Errors } = require('../utils/validator');
 const getDefaultProfile = require('../utils/getDefaultProfile');
+const urlToBase64 = require('../utils/urlToBase64');
 
 router.get('/posts/:id/:index', getPostImage);
 router.get('/comments/:id/:index', getCommentImage);
@@ -14,7 +15,11 @@ async function getPostImage(ctx) {
   assert(post, Errors.ERR_NOT_FOUND('post'));
   assert(post.images, Errors.ERR_NOT_FOUND('post.images'));
   const image = post.images[ctx.params.index];
-  assert(image, Errors.ERR_NOT_FOUND('image'));
+  assert(image && (image.content || image.url), Errors.ERR_NOT_FOUND('image'));
+
+  if (image.url) {
+    image.content = await urlToBase64(image.url, { maxKbSize: 200 });
+  }
 
   const buffer = Buffer.from(image.content, 'base64');
   ctx.set('Content-Type', image.mediaType);
@@ -28,7 +33,11 @@ async function getCommentImage(ctx) {
   assert(comment, Errors.ERR_NOT_FOUND('comment'));
   assert(comment.images, Errors.ERR_NOT_FOUND('comment.images'));
   const image = comment.images[ctx.params.index];
-  assert(image, Errors.ERR_NOT_FOUND('image'));
+  assert(image && (image.content || image.url), Errors.ERR_NOT_FOUND('image'));
+
+  if (image.url) {
+    image.content = await urlToBase64(image.url, { maxKbSize: 200 });
+  }
 
   const buffer = Buffer.from(image.content, 'base64');
   ctx.set('Content-Type', image.mediaType);

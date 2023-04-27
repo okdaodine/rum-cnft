@@ -9,7 +9,7 @@ import { isMobile } from 'utils/env';
 import Loading from 'components/Loading';
 import { useHistory } from 'react-router-dom';
 import Button from 'components/Button';
-import TopPlaceHolder from 'components/TopPlaceHolder';
+import TopPlaceHolder, { scrollToTop } from 'components/TopPlaceHolder';
 
 export default observer(() => {
   const { postStore, userStore } = useStore();
@@ -21,6 +21,7 @@ export default observer(() => {
   const history = useHistory();
 
   React.useEffect(() => {
+    scrollToTop();
     if (post) {
       state.loading = false;
       document.title = post.content.slice(0, 50);
@@ -28,6 +29,7 @@ export default observer(() => {
     }
     (async () => {
       try {
+        state.loading = true;
         const post = await PostApi.get(id, {
           viewer: userStore.address
         });
@@ -40,7 +42,7 @@ export default observer(() => {
       }
       state.loading = false;
     })();
-  }, []);
+  }, [id]);
 
   if (state.loading) {
     return (

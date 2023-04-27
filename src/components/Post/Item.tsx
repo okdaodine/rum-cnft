@@ -19,6 +19,10 @@ import BFSReplace from 'utils/BFSReplace';
 import Query from 'utils/query';
 import escapeStringRegexp from 'escape-string-regexp';
 import UserName from 'components/UserName';
+import LinkCard from 'components/LinkCard';
+import extractUrls from 'utils/extractUrls';
+import RetweetItem from './RetweetItem';
+import isRetweetUrl from 'utils/isRetweetUrl';
 
 import './index.css';
 
@@ -31,7 +35,7 @@ interface IProps {
   hideBottom?: boolean
 }
 
-const Images = observer((props: { images: string[] }) => {
+export const Images = observer((props: { images: string[] }) => {
   const count = props.images.length;
 
   return (
@@ -150,6 +154,29 @@ export default observer((props: IProps) => {
   const isTweet = fromTwitter || fromWeibo;
   const isIndexedBy = (post.title || '').includes('indexed by');
 
+  const lastUrl = React.useMemo(() => {
+    const urls = extractUrls(post.content || '');
+    if (urls.length > 0) {
+      return urls.pop();
+    }
+    return '';
+  }, [post.content]);
+
+  const postContent = React.useMemo(() => {
+    let postContent = post.content.trim();
+    if (lastUrl) {
+      if (
+        !postContent.endsWith(lastUrl) ||
+        (isRetweetUrl(lastUrl) && !post.extra?.retweet) ||
+        (post.extra?.retweet && !(new URL(lastUrl).pathname.includes(post.extra?.retweet!.id)))
+      ) {
+        return postContent;
+      }
+      postContent = postContent.slice(0, -lastUrl.length);
+    }
+    return postContent;
+  }, [post.content, lastUrl]);
+
   React.useEffect(() => {
     if (inPostDetail || !post.content) {
       return;
@@ -242,22 +269,22 @@ export default observer((props: IProps) => {
                 })}
               </div>
             </div>
-            {post.content && (
+            {postContent && (
               <div className="pb-1 relative">
                 <div
                   ref={contentRef}
-                  key={post.content}
+                  key={postContent}
                   className={classNames(
                     {
                       expandContent: state.expandContent,
                       fold: !state.expandContent,
                       'text-[15px]': inPostDetail,
-                      'text-[14px]': !inPostDetail
+                      'text-[14px]': !inPostDetail,
                     },
-                    'mt-[4px] dark:text-white dark:text-opacity-80 text-gray-4a break-words whitespace-pre-wrap tracking-wide',
+                    'mt-[4px] dark:text-white dark:text-opacity-80 text-gray-4a break-words whitespace-pre-wrap tracking-wide pr-2 md:pr-0',
                   )}
                   dangerouslySetInnerHTML={{
-                    __html: replaceContent(`${post.content}`, {
+                    __html: replaceContent(`${postContent}`, {
                       disabled: isMobile && !inPostDetail
                     }) +`${isTweet ? ` <a class="text-sky-400 text-12" href="${(post.title || '').split(' ')[0]}" ${isMobile && !inPostDetail ? 'disabled' : ''}>${post.title?.includes('indexed by') ? '来自推特' : '查看原文'}</a>` : ''}`,
                   }}
@@ -293,7 +320,7 @@ export default observer((props: IProps) => {
                     </div>
                   </div>
                 )}
-                {isPc && state.expandContent && state.canExpandContent && post.content.length > 600 && (
+                {isPc && state.expandContent && state.canExpandContent && postContent.length > 600 && (
                   <div
                     className="text-sky-500 cursor-pointer tracking-wide flex items-center text-12 absolute top-[2px] right-[-90px] opacity-80"
                     onClick={() => {
@@ -306,10 +333,19 @@ export default observer((props: IProps) => {
                 )}
               </div>
             )}
-            {!post.content && <div className="pb-3" />}
-            {(post.images || []).length > 0 && <div className="pb-2">
+            {(post.images || []).length > 0 && <div className={classNames({ 'pt-3': !postContent }, "pb-2")}>
               <Images images={post.images || []} />
             </div>}
+            {post.extra!.retweet && (
+              <div className="mr-2 md:mr-0">
+                <RetweetItem post={post.extra!.retweet} />
+              </div>
+            )}
+            {lastUrl && !post.extra!.retweet && (
+              <div className="mr-2 md:mr-0">
+                <LinkCard url={lastUrl} />
+              </div>
+            )}
           </div>
         </div>
 

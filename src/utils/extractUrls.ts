@@ -1,0 +1,1 @@
+export default (content: string) => content.match(/(https?:\/\/)([\S]+)/g) || [];

@@ -29,6 +29,11 @@ import { IImage } from 'apis/types/common';
 import openLoginModal from 'components/Wallet/openLoginModal';
 import { isMobile, isPc } from 'utils/env';
 import useHandleNoPermission from 'hooks/useHandleNoPermission';
+import LinkCard from 'components/LinkCard';
+import extractUrls from 'utils/extractUrls';
+import RetweetItem from 'components/Post/RetweetItem';
+import isRetweetUrl from 'utils/isRetweetUrl';
+import { PostApi } from 'apis';
 
 import './index.css';
 
@@ -43,13 +48,13 @@ export interface IDraft {
 
 type ISubmitData = {
   content: string
-  updatedId?: string
   images?: IImage[]
+  retweet?: IPost
 };
 
 interface IProps {
+  retweet?: IPost
   groupId: string
-  post?: IPost
   editorKey: string
   placeholder: string
   submit: (data: ISubmitData) => unknown
@@ -137,85 +142,66 @@ export default (props: IProps) => {
 const Editor = observer((props: IProps) => {
   const { snackbarStore, userStore } = useStore();
   const handleNoPermission = useHandleNoPermission(useStore());
-  const draftKey = `${props.editorKey.toUpperCase()}_DRAFT_${props.groupId}`;
+  const draftKey = `${props.editorKey.toUpperCase()}_DRAFT_${props.groupId}` + (props.retweet ? `_${props.retweet.id}` : '');
   const state = useLocalObservable(() => ({
-    content: props.post ? props.post.content : '',
+    content: '',
     submitting: false,
     fetchedProfile: false,
     clickedEditor: false,
     emoji: false,
     cacheImageIdSet: new Set(''),
     imageMap: {} as Record<string, IPreviewItem>,
+    retweetUrl: '',
+    retweet: props.retweet || null as IPost | null,
+    lastUrl: '',
+    enabledDraftListener: false
   }));
   const emojiButton = React.useRef<HTMLDivElement>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const isPastingFileRef = React.useRef<boolean>(false);
   const imageCount = Object.keys(state.imageMap).length;
   const imageIdSet = React.useMemo(() => new Set(Object.keys(state.imageMap)), [imageCount]);
-  const readyToSubmit = (state.content.trim() || imageCount > 0) && !state.submitting;
+  const readyToSubmit = ((state.content.trim() || imageCount > 0) && !state.submitting) || !!props.retweet;
   const imageLImit = props.imageLimit || 4;
-  const isUpdating = !!props.post;
   const alertedPreviewsRef = React.useRef<string[]>([]);
+  const enabledLinkPreview = props.editorKey === 'post';
 
   React.useEffect(() => {
-    if (props.post && props.post.images) {
-      const imageMap = {} as Record<string, IPreviewItem>;
-      let i = 0;
-      for (const image of props.post.images) {
-        const name = `${i}`;
-        imageMap[name] = {
-          id: name,
-          name: name,
-          url: image,
-        } as IPreviewItem;
-        i++;
+    (async () => {
+      await sleep(1000);
+      const draft = localStorage.getItem(draftKey);
+      if (!draft) {
+        return;
       }
-      state.imageMap = imageMap;
-    }
-  }, [isUpdating]);
-
-  React.useEffect(() => {
-    if (props.autoFocusDisabled) {
-      return;
-    }
-    setTimeout(() => {
-      if (textareaRef.current) {
-        textareaRef.current.focus();
-        const len = textareaRef.current.value.length;
-        textareaRef.current.setSelectionRange(len, len);
+      const draftObj = JSON.parse(draft);
+      if (!draftObj.content && (draftObj.images || []).length === 0) {
+        return;
       }
-    }, 300);
-  }, [isUpdating]);
-
-  React.useEffect(() => {
-    if (isUpdating) {
-      return;
-    }
-    const draft = localStorage.getItem(draftKey);
-    if (!draft) {
-      return;
-    }
-    const draftObj = JSON.parse(draft);
-    if (!draftObj.content && (draftObj.images || []).length === 0) {
-      return;
-    }
-    state.content = draftObj.content || '';
-    if (props.enabledImage) {
-      for (const image of draftObj.images as IPreviewItem[]) {
-        state.imageMap[image.id] = image;
+      state.content = draftObj.content || '';
+      if (props.enabledImage) {
+        for (const image of draftObj.images as IPreviewItem[]) {
+          state.imageMap[image.id] = image;
+        }
       }
-    }
+    })();
   }, []);
 
   React.useEffect(() => {
-    if (isUpdating) {
-      return;
+    if (state.enabledDraftListener) {
+      saveDraft({
+        content: state.content,
+        images: Object.values(state.imageMap),
+      });
     }
-    saveDraft({
-      content: state.content,
-      images: Object.values(state.imageMap),
-    });
+    getUrls(state.content);
   }, [state.content, imageIdSet]);
+
+  React.useEffect(() => {
+    (async () => {
+      await sleep(3000);
+      state.enabledDraftListener = true;
+    })();
+  }, []);
 
   React.useEffect(() => {
     (async () => {
@@ -236,6 +222,33 @@ const Editor = observer((props: IProps) => {
       }
       localStorage.setItem(draftKey, JSON.stringify(draft));
     }, 300),
+    [],
+  );
+
+  const getUrls = React.useCallback(
+    debounce((content: string) => {
+      if (enabledLinkPreview && !props.retweet) {
+        const urls = extractUrls(content || '').reverse();
+        if (urls.length > 0) {
+          state.lastUrl = urls[0] || '';
+        } else {
+          state.lastUrl = '';
+        }
+        state.retweetUrl = urls.find(url => isRetweetUrl(url)) || '';
+        if (state.retweetUrl) {
+          (async () => {
+            try {
+              const retweetId = new URL(state.retweetUrl).pathname.split('/')[2] || '';
+              state.retweet = await PostApi.get(retweetId, { viewer: undefined });
+            } catch (err) {
+              console.log(err);
+            }
+          })();
+        } else {
+          state.retweet = null;
+        }
+      }
+    }, 800),
     [],
   );
 
@@ -290,14 +303,14 @@ const Editor = observer((props: IProps) => {
       }));
       payload.images = images;
     }
-    if (isUpdating) {
-      payload.updatedId = props.post!.id;
+    if (state.retweet) {
+      payload.retweet = state.retweet;
+      if (props.retweet && !payload.content.includes(`/posts/${props.retweet.id}`)) {
+        payload.content += `${payload.content ? ' ' : ''}${window.location.origin}/posts/${props.retweet.id}`;
+      }
     }
-    let _draft = '';
-    if (!isUpdating) {
-      _draft = localStorage.getItem(draftKey) || '';
-      localStorage.removeItem(draftKey);
-    }
+    let _draft = localStorage.getItem(draftKey) || '';
+    localStorage.removeItem(draftKey);
     try {
       await props.submit(payload);
       state.content = '';
@@ -380,7 +393,7 @@ const Editor = observer((props: IProps) => {
                 placeholder={props.placeholder}
                 minRows={props.minRows || 2}
                 value={state.content}
-                autoFocus={!isUpdating && (props.autoFocus || false)}
+                autoFocus={props.autoFocus || false}
                 onChange={onChange}
                 onPaste={onPaste}
                 onKeyDown={onKeyDown}
@@ -396,7 +409,7 @@ const Editor = observer((props: IProps) => {
                   minRows={5}
                   maxRows={8}
                   value={state.content}
-                  autoFocus={!isUpdating && (props.autoFocus || false)}
+                  autoFocus={props.autoFocus || false}
                   onChange={onChange}
                   onPaste={onPaste}
                   onKeyDown={onKeyDown}
@@ -493,6 +506,14 @@ const Editor = observer((props: IProps) => {
           />
         </div>
       )}
+      {state.retweet && (
+        <div className="pb-1">
+          <RetweetItem post={state.retweet} small={isMobile} disabledClick  />
+        </div>
+      )}
+      {!state.retweetUrl && !state.retweet && state.lastUrl && (
+        <LinkCard url={state.lastUrl} />
+      )}
       {(state.clickedEditor
         || imageCount > 0
         || props.autoFocus
@@ -534,8 +555,8 @@ const Editor = observer((props: IProps) => {
               )}
             </div>
             <Tooltip
-              enterDelay={1500}
-              enterNextDelay={1500}
+              enterDelay={2000}
+              enterNextDelay={2000}
               placement="left"
               title={`${lang.shortcut}: Ctrl + Enter, Cmd + Enter`}
               arrow
@@ -549,7 +570,7 @@ const Editor = observer((props: IProps) => {
                   })}
                   onClick={submit}
                 >
-                  {props.submitButtonText || (isUpdating ? lang.update : lang.publish)}
+                  {props.submitButtonText || (props.retweet ? '转发' : lang.publish)}
                 </Button>
               </div>
             </Tooltip>

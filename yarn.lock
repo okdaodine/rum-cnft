@@ -2342,6 +2342,11 @@
     "@svgr/plugin-svgo" "^5.5.0"
     loader-utils "^2.0.0"
 
+"@tailwindcss/line-clamp@^0.4.4":
+  version "0.4.4"
+  resolved "https://registry.npmjs.org/@tailwindcss/line-clamp/-/line-clamp-0.4.4.tgz#767cf8e5d528a5d90c9740ca66eb079f5e87d423"
+  integrity sha512-5U6SY5z8N42VtrCrKlsTAA35gy2VSyYtHWCsg1H87NU1SXnEfekTVlrga9fzUDrrHcGi2Lb5KenUWb4lRQT5/g==
+
 "@tootallnate/once@1":
   version "1.1.2"
   resolved "https://registry.npmmirror.com/@tootallnate/once/-/once-1.1.2.tgz#ccb91445360179a04e7fe6aff78c00ffc1eeaf82"
@@ -9112,10 +9117,10 @@ rollup@^2.43.1:
   optionalDependencies:
     fsevents "~2.3.2"
 
-rum-sdk-browser@^2.0.1:
-  version "2.0.1"
-  resolved "https://registry.npmjs.org/rum-sdk-browser/-/rum-sdk-browser-2.0.1.tgz#d204ecd93f9c9bd09b35ada91e96bda0e462bedc"
-  integrity sha512-Rdo8SRDq+r4nkplmup1FUxX/l4JuLTWrfQTwE8j3QEPc+/qP7I4RYJn4xuVITsq4STxmsLYdBTffjjPQiiaSqg==
+rum-sdk-browser@2.0.5:
+  version "2.0.5"
+  resolved "https://registry.npmjs.org/rum-sdk-browser/-/rum-sdk-browser-2.0.5.tgz#87273c5bc82d8ef999604186d7f8a4443b43dcc3"
+  integrity sha512-kF2d1DxbXuIkHOKU+PdkTVIDc45y08IkGYzh/VYiWREmh5HaVxNy4xiJpNUPT2+hwYDedCY1Dy6nSmF03JxFYg==
   dependencies:
     "@types/crypto-js" "^4.1.1"
     "@types/node-localstorage" "^1.3.0"
